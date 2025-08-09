@@ -1,0 +1,3230 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="https://static.vecteezy.com/ti/vettori-gratis/p1/5554311-fitness-logo-palestra-logo-vettore-vettoriale.jpg">
+    <link rel="shortcut icon" type="image/png" href="https://static.vecteezy.com/ti/vettori-gratis/p1/5554311-fitness-logo-palestra-logo-vettore-vettoriale.jpg">
+    <title>My Gym Log</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-color-dark: #0056b3;
+            --background-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #ddd;
+        }
+
+        .dark-mode {
+            --primary-color: #0056b3;
+            --primary-color-dark: #003d80;
+            --background-color: #333333;
+            --text-color: #ffffff;
+            --border-color: #555;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .secondary-button {
+            background-color: #6c757d;
+        }
+
+        .secondary-button:hover {
+            background-color: #5a6268;
+        }
+
+        .tab-newline {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .tabs {
+            display: grid;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            grid-template-columns: repeat(4, auto); /* Tre colonne per la prima riga */
+            grid-template-rows: auto auto; /* Due righe */
+            gap: 5px;
+            justify-content: center;
+            margin: 70px -10px 15px -10px;
+            padding: 10px;
+            padding-top: 0px;
+            background-color: var(--background-color);
+            position: sticky;
+            top: 80px;
+            z-index: 1000;
+            border-bottom: 0.1px solid var(--border-color);
+            margin-bottom: -50px;
+            height: 50px;
+            transform: translateY(-80px);
+        }
+
+        .tab {
+            padding: 12px 20px;
+            white-space: nowrap;
+            font-size: 14px;
+            border-radius: 50px;
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--text-color);
+            cursor: pointer;
+            height: 40px;
+            transition: all 0.3s ease;
+        }
+
+        /* Posizionamento specifico per le ultime due tab */
+        .tab:nth-child(5) {
+            grid-row: 1;
+            grid-column: 1;
+        }
+
+        .tab:nth-child(5) {
+            grid-row: 2;
+            grid-column: 3;
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-8%);
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            align-items: center;
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            /* -webkit-appearance: none; */
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        button {
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin: 10px 0;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: var(--primary-color-dark);
+        }
+
+        #progressiTable {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        #progressiTable th, 
+        #progressiTable td {
+            padding: 12px 8px;
+            font-size: 14px;
+            min-width: 100px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: 0.4fr 0.6fr 1fr;
+            gap: 10px;
+            
+        }
+
+        .filters button {
+            grid-column: 1 / -1;
+            margin: 2px;
+        }
+
+        canvas#chartContainer {
+            width: 95% !important;
+            height: 400px !important;
+            margin-top: 20px;
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 0.8s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { 
+                transform: rotate(0deg); 
+            }
+            100% { 
+                transform: rotate(360deg); 
+            }
+        }
+
+        .sync-container {
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            width: 260px;
+            height: 50px;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        /* Effetto pulse quando lo spinner è attivo */
+        .loading-spinner.active {
+            box-shadow: 0 0 0 rgba(var(--primary-color), 0.4);
+            animation: spin 0.8s ease-in-out infinite, pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(var(--primary-color), 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(var(--primary-color), 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(var(--primary-color), 0);
+            }
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 62px;
+            right: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            z-index: 1003;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .popup.hiding {
+            animation: fadeOut 0.3s ease-in;
+        }
+
+        .btn-modifica, .btn-elimina {
+            padding: 5px;
+            margin: 2px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            background-color: transparent;
+        }
+
+        .btn-modifica:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-elimina:hover {
+            background-color: #ff4444;
+            color: white;
+        }
+
+        @media (min-width: 768px) {
+            body { padding: 20px; }
+            form { max-width: 500px; margin: 0 auto; }
+            .filters { grid-template-columns: repeat(3, 1fr); }
+            .filters button { grid-column: auto; }
+        }
+        .table-container {
+            position: relative;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* Per uno scrolling fluido su iOS */
+            margin: 15px 0;
+            background:
+                linear-gradient(to right, white 30%, rgba(255,255,255,0)),
+                linear-gradient(to right, rgba(255,255,255,0), white 70%) 100% 0,
+                radial-gradient(farthest-side at 0% 50%, rgba(0,0,0,.2), rgba(0,0,0,0)),
+                radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.2), rgba(0,0,0,0)) 100% 0;
+            background-repeat: no-repeat;
+            background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+            background-attachment: local, local, scroll, scroll;
+        }
+
+        @media screen and (max-width: 600px) {
+    table {
+        display: block;
+        width: 100%;
+        margin: 0 auto; /* Centra la tabella */
+    }
+    
+    tr {
+        display: block;
+        margin: 0 auto 15px auto; /* Centra le card */
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px;
+        width: 88vw;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    /* Nascondi le intestazioni della tabella */
+    thead {
+        display: none;
+    }
+    
+    /* Mostra le etichette dei dati */
+    td:before {
+        content: attr(data-label);
+        font-weight: bold;
+        margin-right: 10px;
+        min-width: 40%; /* Larghezza fissa per le etichette */
+        text-align: left;
+    }
+    
+    td {
+        text-align: right; /* Allinea i valori a destra */
+        padding: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+@media screen and (max-width: 600px) {
+    /* Stile per i contenitori delle tabelle */
+    .table-container {
+        padding: 0 10px;
+    }
+    
+    /* Migliora la spaziatura tra le righe */
+    tr + tr {
+        margin-top: 20px;
+    }
+    
+    /* Migliora la leggibilità del testo */
+    td {
+        font-size: 16px;
+        line-height: 1.4;
+    }
+    
+    /* Stile per i pulsanti nelle celle */
+    td[data-label="Azioni"] {
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    
+    .btn-modifica, .btn-elimina {
+        padding: 8px 12px;
+    }
+}
+
+    h2 {
+        text-align: center;
+    }
+
+    /* Update impostazioni */
+
+    .settings-form {
+    max-width: 80vw;
+    margin: 20px auto;
+    margin-top: 10px;
+    padding: 20px;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: solid 1px var(--border-color)
+}
+
+.settings-group {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.settings-group label {
+    font-weight: bold;
+    margin-right: 15px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    cursor: pointer; /* Aggiungi il cursore pointer */
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 100%; /* Cambia da 0 a 100% */
+    height: 100%; /* Cambia da 0 a 100% */
+    position: absolute;
+    z-index: 2; /* Metti l'input sopra lo slider */
+    cursor: pointer;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+    z-index: 1; /* Metti lo slider sotto l'input */
+    pointer-events: none; /* Importante: permette i click attraverso lo slider */
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 3px; /* Modificato questo valore */
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+
+input:checked + .toggle-slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.sync-button-container {
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.sync-settings-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    max-width: 200px;
+    margin-top: -20px;
+}
+
+.sync-icon {
+    font-size: 1.2em;
+}
+
+/* Update impostazioni */
+
+/* Update Dashboard */
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .theme-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+            font-size: 20px;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            opacity: 0.7;
+            transition: opacity 0.3s, transform 0.3s;
+            cursor: pointer;
+        }
+
+        .theme-button:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            background-color: transparent;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .progress-positive {
+            background-color: rgba(40, 167, 69, 0.1);
+            border-left: 4px solid var(--success-color);
+            text-align: center;
+            align-items: center;
+        }
+
+        .progress-neutral {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .progress-negative {
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        @media screen and (max-width: 600px) {
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-left: -10px;
+            }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 5px;
+            background-color: rgba(0,123,255,0.1);
+            border-radius: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .heatmap-container {
+            padding: 15px;
+        }
+
+        .heatmap-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .nav-button {
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-button:hover {
+            background: rgba(75, 192, 192, 0.1);
+        }
+
+        .current-period {
+            font-weight: 500;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 1px solid var(--border-color);
+            min-height: 30px;
+            position: relative;
+            background-color: rgba(200, 200, 200, 0.1);
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            z-index: 1;
+        }
+
+        .heatmap-cell.empty {
+            border: none;
+            background: transparent;
+        }
+
+        .heatmap-cell.today {
+            border: 2px solid var(--primary-color);
+        }
+
+        .heatmap-header {
+            color: var(--text-color);
+            opacity: 0.8;
+            text-align: center;
+            padding: 4px;
+            font-size: 0.8em;
+        }
+
+        .day-number {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: 0.7em;
+            color: var(--text-color);
+        }
+
+        .performance-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .performance-indicator {
+            background: rgba(75, 192, 192, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .indicator-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .indicator-label {
+            font-size: 14px;
+            color: var(--text-color);
+            margin-top: 5px;
+        }
+
+        .peaks-valleys {
+            padding: 15px;
+        }
+
+        .peak-valley-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background: rgba(75, 192, 192, 0.1);
+        }
+
+        .peak {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .valley {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .report-select {
+            margin: 10px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .periodic-report {
+            padding: 15px;
+        }
+
+        .report-section {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(75, 192, 192, 0.1);
+            border-radius: 4px;
+        }
+
+        .correlation-analysis {
+            padding: 15px;
+        }
+
+        .correlation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(75, 192, 192, 0.1);
+            border-radius: 4px;
+        }
+
+        .correlation-value {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .correlation-strong {
+            background: rgba(40, 167, 69, 0.2);
+        }
+
+        .correlation-moderate {
+            background: rgba(255, 193, 7, 0.2);
+        }
+
+        .correlation-weak {
+            background: rgba(220, 53, 69, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; }
+            .stat-card { min-width: 100%; }
+        }
+/* Update Dashboard */
+
+/* Loader Update */
+.initial-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0.5;
+    transition: opacity 0.5s ease-out;
+}
+
+.initial-loading .spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.initial-loading .loading-text {
+    margin-top: 20px;
+    font-size: 1.2em;
+    color: var(--text-color);
+}
+
+
+
+
+/* Loader Update */
+
+
+    </style>
+</head>
+<body>
+    <div id="initialLoadingScreen" class="initial-loading">
+        <div class="spinner"></div>
+        <div class="loading-text"></div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="openTab('inserimento')">Registra</button>
+            <button class="tab" onclick="openTab('progressi')">Tracker</button>
+            <button class="tab" onclick="openTab('grafico')">Grafici</button>
+            <button class="tab" style="margin-left: 5px;" onclick="openTab('impostazioni')">🔧</button>
+        </div>
+        
+        
+
+
+        <div id="inserimento" class="tab-content active">
+            <form id="workoutForm">
+                <input type="date" id="data" required>
+                <input type="number" step="any" id="settimana" placeholder="Numero settimana" required>
+                <select id="esercizio" required>
+                    <option value="">Esercizio</option>
+                    
+                    <optgroup label="Petto">
+                        <option value="panca">Panca</option>
+                        <option value="spinte-manubri">Spinte Manubri</option>
+                        <option value="spinte-manubri-30-gradi">Spinte Manubri 30 gradi</option>
+                        <option value="chest-press">Chest Press</option>
+                        <option value="pec-deck">Pec Deck</option>
+                        <option value="supine-press">Supine Press</option>
+                    </optgroup>
+
+                    <optgroup label="Dorso">
+                        <option value="lat-machine">Lat Machine</option>
+                        <option value="lat-machine-singola">Lat Machine Singola</option>
+                        <option value="row-machine">Row Machine</option>
+                        <option value="pullover">Pullover</option>
+                        <option value="rematore">Rematore</option>
+                        <option value="pulley">Pulley</option>
+                        <option value="pulley-basso">Pulley Basso</option>
+                        <option value="iperexpension">Iper Estensioni</option>
+                    </optgroup>
+
+                    <optgroup label="Spalle">
+                        <option value="shoulder-press">Shoulder Press</option>
+                        <option value="alzate-laterali">Alzate Laterali</option>
+                        <option value="alzate-unilaterali">Alzate Unilaterali</option>
+                        <option value="alzate-frontali">Alzate Frontali</option>
+                        <option value="pec-deck-inverso">Pec Deck Inverso</option>
+                        <option value="face-pull">Face Pull</option>
+                    </optgroup>
+
+                    <optgroup label="Braccia">
+                        <option value="curl-macchina">Curl alla Macchina</option>
+                        <option value="hammer-curl">Hammer Curl</option>
+                        <option value="estensioni-tricipiti">Estensioni Tricipiti</option>
+                        <option value="pushdown">Pushdown</option>
+                    </optgroup>
+
+                    <optgroup label="Gambe">
+                        <option value="squat">Squat</option>
+                        <option value="leg-press">Leg Press</option>
+                        <option value="pressa-orizzontale">Pressa Orizzontale</option>
+                        <option value="leg-extension">Leg Extension</option>
+                        <option value="leg-curl">Leg Curl</option>
+                        <option value="hip-thrust">Hip Thrust</option>
+                        <option value="polpacci">Polpacci</option>
+                    </optgroup>
+
+                    <optgroup label="Altri">
+                        <option value="farmer">Farmer</option>
+                        <option value="stacco">Stacco</option>
+                    </optgroup>
+                </select>
+                <input type="number" step="any" id="peso" placeholder="Peso (kg)" required>
+                <input type="number" id="serie" step="any" placeholder="Numero serie" required>
+                <input type="number" id="ripetizioni" step="any" placeholder="Ripetizioni" required>
+                <select id="percezione">
+                    <option value="">Seleziona percezione</option>
+                    <option value="scarsa">Scarsa</option>
+                    <option value="buona">Buona</option>
+                    <option value="ottima">Ottima</option>
+                </select>
+                <textarea id="note" placeholder="Note aggiuntive"></textarea>
+                <div id="volumeCalc">Volume totale: 0 kg</div>
+                <button type="submit">Salva</button>
+            </form>
+        </div>
+
+        <div id="progressi" class="tab-content">
+            <div class="filters">
+                <input type="number" id="filterAnno" placeholder="Anno">
+                <input type="number" id="filterSettimana" placeholder="Settimana">
+                <select id="filterEsercizio">
+                    <option value="">Tutti gli esercizi</option>
+                    
+                    <optgroup label="Petto">
+                        <option value="panca">Panca</option>
+                        <option value="spinte-manubri">Spinte Manubri</option>
+                        <option value="spinte-manubri-30-gradi">Spinte Manubri 30 gradi</option>
+                        <option value="chest-press">Chest Press</option>
+                        <option value="pec-deck">Pec Deck</option>
+                        <option value="supine-press">Supine Press</option>
+                    </optgroup>
+
+                    <optgroup label="Dorso">
+                        <option value="lat-machine">Lat Machine</option>
+                        <option value="lat-machine-singola">Lat Machine Singola</option>
+                        <option value="row-machine">Row Machine</option>
+                        <option value="pullover">Pullover</option>
+                        <option value="rematore">Rematore</option>
+                        <option value="pulley">Pulley</option>
+                        <option value="pulley-basso">Pulley Basso</option>
+                        <option value="iperexpension">Iper Estensioni</option>
+                    </optgroup>
+
+                    <optgroup label="Spalle">
+                        <option value="shoulder-press">Shoulder Press</option>
+                        <option value="alzate-laterali">Alzate Laterali</option>
+                        <option value="alzate-unilaterali">Alzate Unilaterali</option>
+                        <option value="alzate-frontali">Alzate Frontali</option>
+                        <option value="pec-deck-inverso">Pec Deck Inverso</option>
+                        <option value="face-pull">Face Pull</option>
+                    </optgroup>
+
+                    <optgroup label="Braccia">
+                        <option value="curl-macchina">Curl alla Macchina</option>
+                        <option value="hammer-curl">Hammer Curl</option>
+                        <option value="estensioni-tricipiti">Estensioni Tricipiti</option>
+                        <option value="pushdown">Pushdown</option>
+                    </optgroup>
+
+                    <optgroup label="Gambe">
+                        <option value="squat">Squat</option>
+                        <option value="leg-press">Leg Press</option>
+                        <option value="pressa-orizzontale">Pressa Orizzontale</option>
+                        <option value="leg-extension">Leg Extension</option>
+                        <option value="leg-curl">Leg Curl</option>
+                        <option value="hip-thrust">Hip Thrust</option>
+                        <option value="polpacci">Polpacci</option>
+                    </optgroup>
+
+                    <optgroup label="Altri">
+                        <option value="farmer">Farmer</option>
+                        <option value="stacco">Stacco</option>
+                    </optgroup>
+                </select>
+                <button onclick="filtraProgressi()">Filtra</button>
+                <button onclick="resetFiltri()" class="secondary-button">Reset</button>
+            </div>           
+
+            <table id="progressiTable">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Settimana</th>
+                        <th>Esercizio</th>
+                        <th>Peso</th>
+                        <th>Serie</th>
+                        <th>Ripetizioni</th>
+                        <th>Volume</th>
+                        <th>Percezione</th>
+                        <th>Note</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="grafico" class="tab-content">
+            <div class="container">
+        <!-- <h1>Dashboard Progressi</h1> -->
+        <div class="controls">
+            <select id="userSelects" style="display:none" onchange="changeUser()">
+                <option value="gio">Gio</option>
+                <option value="pari">Pari</option>
+                <option value="serj">Serj</option>
+            </select>
+            <select id="exerciseSelect">
+                <option value="">Esercizio</option>
+            </select>
+            <select id="viewType">
+                <option value="week">Settimana</option>
+                <option value="date">Data</option>
+            </select>
+        </div>
+        <!-- <button id="darkModeToggle" class="theme-button" onclick="toggleDarkMode()">🌓</button> -->
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>Statistiche Chiave</h3>
+                <div class="stats-grid" id="keyStats"></div>
+            </div>
+            <div class="card">
+                <h3>Andamento Peso</h3>
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Andamento Volume</h3>
+                <div class="chart-container">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Analisi Progressi</h3>
+                <div id="progressAnalysis"></div>
+            </div>
+            <div class="card">
+                <h3>Analisi Avanzata</h3>
+                <div class="chart-container">
+                    <canvas id="advancedChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Distribuzione del Volume</h3>
+                <div class="chart-container">
+                    <canvas id="volumeDistribution"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Calendario Allenamenti</h3>
+                <div id="heatmapContainer" class="heatmap-container"></div>
+            </div>
+            <div class="card">
+                <h3>Indicatori di Performance</h3>
+                <div id="performanceIndicators" class="performance-indicators"></div>
+            </div>
+            <div class="card">
+                <h3>Analisi Picchi e Minimi</h3>
+                <div id="peaksValleys" class="peaks-valleys"></div>
+            </div>
+            <div class="card">
+                <h3>Report Periodico</h3>
+                <select id="reportPeriod" class="report-select">
+                    <option value="week">Settimanale</option>
+                    <option value="month">Mensile</option>
+                    <option value="quarter">Trimestrale</option>
+                </select>
+                <div id="periodicReport" class="periodic-report"></div>
+            </div>
+            <div class="card">
+                <h3>Analisi Correlazioni</h3>
+                <div id="correlationAnalysis" class="correlation-analysis"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Caricamento dati...</p>
+    </div>
+
+    <div id="errorContainer"></div>
+        </div>
+
+        <div id="impostazioni" class="tab-content">
+            <h2>Impostazioni</h2>
+            <form id="settingsForm" class="settings-form">
+                <div class="settings-group">
+                    <label for="userSelect">Seleziona Utente</label>
+                    <select id="userSelect" name="user">
+                        <option value="">Vuoto</option>
+                        <option value="gio">Gio</option>
+                        <option value="pari">Pari</option>
+                        <option value="serj">Serj</option>
+                    </select>
+                </div>
+
+                <div class="settings-group">
+                    <label for="darkModeToggle">Dark Mode</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+
+                <div class="sync-container">
+                    <div class="sync-status">
+                        <span id="sync-text">Stato: Sincronizzato</span>
+                        <div id="sync-spinner" class="loading-spinner" style="display: none;"></div>
+                    </div>
+                    <div id="last-sync" style="font-size: 0.8em;">Ultimo aggiornamento: --:--:--</div>
+                </div>
+                <div class="settings-group sync-button-container">
+                    <button type="button" class="sync-settings-button" onclick="sincronizzaDati(true)">
+                        Sincronizza Dati
+                        <span class="sync-icon">🔄</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+    <script>
+    // Variabili globali
+    let workoutsData = [];
+    let lastSyncTime = 0;
+    let isSyncing = false;
+    const SYNC_COOLDOWN = 60000; // 1 minuto di cooldown
+
+    // Costanti per gli URL
+    const SHEETS_URLS = {
+        'gio': 'https://script.google.com/macros/s/AKfycbwLP4EAUBa8EZ3iWdGyVW6Zc0YgfqKshWzqe2UJ04sxHVMTiSqkAW2V4YvbQ5iXjXvGzg/exec',
+        'pari': 'https://script.google.com/macros/s/AKfycbyHb3lLbKgFesw8RSUoOoYHLoK2IfhpG8E_JFaD2QaS0V2427uy2nz0hd-__Ha0G9I/exec',
+        'serj': 'https://script.google.com/macros/s/AKfycbzC1UebCDkkBacknNiWxZNIfmsMSn0IIkMuwzqpf5arb6QBizVPtLk9pDYqGfgrO3en7g/exec'
+    };
+
+    let SHEETS_URL = '';
+
+function getSharedWorkoutData() {
+    console.log("Verifica workoutsData:", workoutsData);
+    if (!workoutsData || workoutsData.length === 0) {
+        console.log('Nessun dato in workoutsData');
+        return null;
+    }
+    return workoutsData;
+}
+
+
+    function setUser(user) {
+        try {
+            localStorage.setItem('currentUser', user);
+        } catch (e) {
+            console.error("Errore nel salvare l'utente:", e);
+        }
+    }
+
+    function getUser() {
+        try {
+            return localStorage.getItem('currentUser');
+        } catch (e) {
+            console.error("Errore nel recuperare l'utente:", e);
+            return null;
+        }
+    }
+
+
+async function handleUserSelection(user) {
+    if (!user) return;
+    
+    try {
+        SHEETS_URL = SHEETS_URLS[user];
+        localStorage.setItem('currentUser', user); // Salva nel localStorage
+        workoutsData = []; // Resetta i dati
+        
+        // Attendi che la sincronizzazione sia completata
+        await sincronizzaDati(true);
+        
+        // Aggiorna tutti i select dell'utente nell'interfaccia
+        const userSelects = document.querySelectorAll('select#userSelect');
+        userSelects.forEach(select => {
+            select.value = user;
+        });
+        
+    } catch (error) {
+        console.error('Errore nella selezione utente:', error);
+        showPopup('Errore nel cambio utente', 5000);
+    }
+}
+
+
+
+
+
+function showUserSelectionPopup() {
+    const popup = document.createElement('div');
+    popup.style.position = 'fixed';
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.backgroundColor = 'white';
+    popup.style.padding = '20px';
+    popup.style.borderRadius = '8px';
+    popup.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    popup.style.zIndex = '10000';
+    popup.style.width = '60vw'
+    popup.style.textAlign = 'center'
+    
+    popup.innerHTML = `
+        <h3>Benvenuto in My Gym Log!</h3>
+        <p>Per iniziare, seleziona chi sta utilizzando l'app:</p>
+        <select id="initialUserSelect" style="width: 100%; margin: 10px 0; padding: 8px;">
+            <option value="">Seleziona utente</option>
+            <option value="gio">Gio</option>
+            <option value="pari">Pari</option>
+            <option value="serj">Serj</option>
+        </select>
+        <button onclick="selectInitialUser()" style="width: 100%; padding: 8px;">Inizia</button>
+    `;
+    
+    document.body.appendChild(popup);
+}
+
+
+    function selectInitialUser() {
+        const select = document.getElementById('initialUserSelect');
+        const user = select.value;
+        handleUserSelection(user);
+        document.querySelector('div[style*="position: fixed"]').remove();
+    }
+
+    // Funzioni di utilità
+    function formatItalianDateTime(date) {
+        return date.toLocaleString('it-IT', { 
+            timeZone: 'Europe/Rome',
+            hour12: false,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+function updateSyncStatus(status, message) {
+    // Seleziona tutti gli elementi sync-text e sync-spinner
+    const syncTexts = document.querySelectorAll('#sync-text');
+    const lastSyncs = document.querySelectorAll('#last-sync');
+    const spinners = document.querySelectorAll('#sync-spinner');
+    const syncButtons = document.querySelectorAll('.sync-button, .sync-settings-button');
+    
+    switch(status) {
+        case 'syncing':
+            syncTexts.forEach(text => {
+                text.innerHTML = 'Sincronizzazione in corso...';
+            });
+            spinners.forEach(spinner => {
+                spinner.style.display = 'inline-block';
+                spinner.classList.add('active');
+            });
+            syncButtons.forEach(button => {
+                button.disabled = true;
+            });
+            break;
+        case 'success':
+            syncTexts.forEach(text => {
+                text.innerHTML = 'Sincronizzato';
+            });
+            spinners.forEach(spinner => {
+                spinner.style.display = 'none';
+                spinner.classList.remove('active');
+            });
+            syncButtons.forEach(button => {
+                button.disabled = false;
+            });
+            const currentTime = formatItalianDateTime(new Date());
+            lastSyncs.forEach(lastSync => {
+                lastSync.innerHTML = 'Ultimo aggiornamento: ' + currentTime;
+            });
+            break;
+        case 'error':
+            syncTexts.forEach(text => {
+                text.innerHTML = 'Errore di sincronizzazione ⚠';
+                text.style.color = '#FF0000';
+            });
+            spinners.forEach(spinner => {
+                spinner.style.display = 'none';
+                spinner.classList.remove('active');
+            });
+            syncButtons.forEach(button => {
+                button.disabled = false;
+            });
+            break;
+    }
+}
+
+
+function updateButtonStatus(button, isLoading, originalText) {
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = `<div class="loading-spinner"></div>`;
+    } else {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+async function sincronizzaDati(forceSync = false) {
+    if (!SHEETS_URL) {
+        const currentUser = getUser();
+        if (currentUser && SHEETS_URLS[currentUser]) {
+            SHEETS_URL = SHEETS_URLS[currentUser];
+        } else {
+            showPopup('Seleziona un utente per iniziare', 5000);
+            return Promise.reject(new Error('URL non impostato'));
+        }
+    }
+
+    if (isSyncing) {
+        console.log('Debug: Sincronizzazione già in corso');
+        return Promise.resolve(workoutsData);
+    }
+
+    const now = Date.now();
+    if (!forceSync && now - lastSyncTime < SYNC_COOLDOWN) {
+        console.log('Debug: Troppo presto per una nuova sincronizzazione');
+        return Promise.resolve(workoutsData);
+    }
+
+    try {
+        isSyncing = true;
+        updateSyncStatus('syncing', 'Caricamento dati...');
+
+        const urlWithParams = `${SHEETS_URL}?action=read&callback=handleJSONPResponse&t=${now}`;
+        
+        const data = await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = urlWithParams;
+            
+            window.handleJSONPResponse = (response) => {
+                script.remove();
+                delete window.handleJSONPResponse;
+                resolve(response);
+            };
+            
+            script.onerror = () => {
+                script.remove();
+                reject(new Error('Errore nel caricamento dello script'));
+            };
+            
+            document.body.appendChild(script);
+        });
+
+        if (data.success && Array.isArray(data.workouts)) {
+            workoutsData = data.workouts;
+            lastSyncTime = now;
+            updateSyncStatus('success', 'Dati caricati con successo');
+            showPopup('Sincronizzazione completata!');
+            loadData();
+            // Aggiorna la dashboard se necessario
+            if (document.querySelector('#grafico.tab-content.active')) {
+                const exerciseSelect = document.getElementById('exerciseSelect');
+                if (exerciseSelect.value) {
+                    updateDashboard();
+                }
+            }
+
+            // Aggiorna il tracker
+            if (document.querySelector('#progressi.tab-content.active')) {
+                const anno = document.getElementById('filterAnno').value;
+                const settimana = document.getElementById('filterSettimana').value;
+                const esercizio = document.getElementById('filterEsercizio').value;
+                
+                if (anno || settimana || esercizio) {
+                    filtraProgressi();
+                } else {
+                    popolaTabellaProgressi(workoutsData);
+                }
+            } else {
+                // Popola comunque la tabella in background
+                popolaTabellaProgressi(workoutsData);
+            }
+
+            return workoutsData;
+        } else {
+            throw new Error('Formato dati non valido ricevuto dal server');
+        }
+    } catch (error) {
+        console.error('Debug: Errore nella sincronizzazione:', error);
+        updateSyncStatus('error', 'Errore durante la sincronizzazione');
+        showPopup('Errore durante la sincronizzazione', 5000);
+        throw error;
+    } finally {
+        isSyncing = false;
+    }
+}
+
+    async function salvaDati(event) {
+    event.preventDefault();
+    const form = document.getElementById('workoutForm');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.textContent;
+    
+    // Disabilita il bottone e mostra lo spinner
+    submitButton.disabled = true;
+    submitButton.innerHTML = `<div class="loading-spinner"></div>`;
+    
+    const mode = form.dataset.mode || 'create';
+    
+    const eventData = {
+        data: document.getElementById('data').value,
+        settimana: document.getElementById('settimana').value,
+        esercizio: document.getElementById('esercizio').value,
+        peso: document.getElementById('peso').value,
+        serie: document.getElementById('serie').value,
+        ripetizioni: document.getElementById('ripetizioni').value,
+        volume: calcolaVolume(),
+        percezione: document.getElementById('percezione').value,
+        note: document.getElementById('note').value
+    };
+
+    if (mode === 'update') {
+        eventData.id = form.dataset.recordId;
+    }
+
+    try {
+        await fetch(SHEETS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: mode,
+                event: eventData
+            })
+        });
+
+        showPopup(mode === 'update' ? 'Dati aggiornati con successo!' : 'Dati salvati con successo!');
+        vibrate();
+        
+        // Reset del form
+        form.reset();
+        form.dataset.mode = 'create';
+        delete form.dataset.recordId;
+        document.getElementById('volumeCalc').textContent = 'Volume totale: 0 kg';
+        const today = new Date();
+        today.setHours(12);
+        document.getElementById('data').valueAsDate = today;
+        
+        await sincronizzaDati(true);
+    } catch (error) {
+        console.error('Errore nel salvataggio:', error);
+        showPopup('Errore nella comunicazione con il server', 5000);
+    } finally {
+        // Ripristina il bottone
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+    }
+}
+
+    function calcolaVolume() {
+        const peso = parseFloat(document.getElementById('peso').value) || 0;
+        const serie = parseInt(document.getElementById('serie').value) || 0;
+        const ripetizioni = parseInt(document.getElementById('ripetizioni').value) || 0;
+        const volume = peso * serie * ripetizioni;
+        document.getElementById('volumeCalc').textContent = `Volume totale: ${volume} kg`;
+        return volume;
+    }
+
+    function popolaTabellaProgressi(dati) {
+    console.log('Debug: Popolo tabella con dati:', dati);
+    const tbody = document.querySelector('#progressiTable tbody');
+    tbody.innerHTML = '';
+    
+    if (!Array.isArray(dati)) {
+        console.error('I dati non sono un array:', dati);
+        return;
+    }
+    
+    // Inverti l'ordine dell'array
+    const datiInvertiti = [...dati].reverse();
+    
+    datiInvertiti.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = row.id;
+
+        let dataFormattata = formatDate(row.data);
+
+        function formatNumberIfDecimal(number) {
+            return Number.isInteger(parseFloat(number)) ? number : parseFloat(number).toFixed(2);
+        }
+
+        tr.innerHTML = `
+            <td data-label="Data">${dataFormattata}</td>
+            <td data-label="Settimana">${row.settimana}</td>
+            <td data-label="Esercizio">${row.esercizio}</td>
+            <td data-label="Peso">${row.peso}</td>
+            <td data-label="Serie">${row.serie}</td>
+            <td data-label="Ripetizioni">${row.ripetizioni}</td>
+            <td data-label="Volume">${formatNumberIfDecimal(row.volume)}</td>
+            <td data-label="Percezione">${row.percezione}</td>
+            <td data-label="Note">${row.note}</td>
+            <td data-label="Azioni">
+                <button onclick="modificaRecord(this)" class="btn-modifica">✏️</button>
+                <button onclick="eliminaRecord(this)" class="btn-elimina">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+
+
+    function formatDate(dateString) {
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+            return dateString;
+        }
+
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            console.error('Data non valida:', dateString);
+            return dateString;
+        }
+
+        return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+    }
+
+    function modificaRecord(button) {
+        const row = button.closest('tr');
+        const cells = row.cells;
+        const recordId = row.dataset.id;
+        
+        document.getElementById('data').value = formatDateForInput(cells[0].textContent);
+        document.getElementById('settimana').value = cells[1].textContent;
+        document.getElementById('esercizio').value = cells[2].textContent;
+        document.getElementById('peso').value = cells[3].textContent;
+        document.getElementById('serie').value = cells[4].textContent;
+        document.getElementById('ripetizioni').value = cells[5].textContent;
+        document.getElementById('percezione').value = cells[7].textContent;
+        document.getElementById('note').value = cells[8].textContent;
+
+        calcolaVolume();
+        openTab('inserimento');
+        
+        const form = document.getElementById('workoutForm');
+        form.dataset.mode = 'update';
+        form.dataset.recordId = recordId;
+        
+        form.querySelector('button[type="submit"]').textContent = 'Aggiorna';
+    }
+
+    function formatDateForInput(dateStr) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month}-${day}`;
+    }
+
+    async function eliminaRecord(button) {
+    const originalButtonHTML = button.innerHTML;
+    
+    // Disabilita il bottone e mostra lo spinner
+    button.disabled = true;
+    button.innerHTML = `<div class="loading-spinner"></div>`;
+
+    const row = button.closest('tr');
+    const recordId = row.dataset.id;
+
+    try {
+        await fetch(SHEETS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: "delete",
+                event: {
+                    id: recordId
+                }
+            })
+        });
+
+        showPopup('Dati eliminati con successo');
+        row.remove();
+        vibrate();
+        
+        await sincronizzaDati(true);
+    } catch (error) {
+        console.error('Errore nell\'eliminazione:', error);
+        showPopup('Errore nell\'eliminazione dei dati', 5000);
+    } finally {
+        // Ripristina il bottone
+        button.disabled = false;
+        button.innerHTML = originalButtonHTML;
+    }
+}
+
+    function aggiornaGrafico() {
+    const esercizio = document.getElementById('esercizioGrafico').value;
+    const tipoGrafico = document.getElementById('tipoGrafico').value;
+    const asseX = document.getElementById('asseXGrafico').value;
+
+    if (!esercizio) {
+        showPopup('Seleziona un esercizio', 3000);
+        return;
+    }
+
+    let datiFiltrati = workoutsData
+        .filter(record => record.esercizio === esercizio);
+
+    // Ordina per data
+    datiFiltrati.sort((a, b) => {
+        const [dayA, monthA, yearA] = a.data.split('/');
+        const [dayB, monthB, yearB] = b.data.split('/');
+        return new Date(yearA, monthA - 1, dayA) - new Date(yearB, monthB - 1, dayB);
+    });
+
+    if (datiFiltrati.length === 0) {
+        showPopup('Nessun dato disponibile per questo esercizio', 3000);
+        return;
+    }
+
+    // Preparazione dati in base alla scelta dell'asse X
+    let labels, dati;
+    if (asseX === 'settimana') {
+        // Raggruppa i dati per settimana
+        const datiPerSettimana = {};
+        datiFiltrati.forEach(record => {
+            if (!datiPerSettimana[record.settimana]) {
+                datiPerSettimana[record.settimana] = [];
+            }
+            datiPerSettimana[record.settimana].push(
+                tipoGrafico === 'peso' ? parseFloat(record.peso) : parseFloat(record.volume)
+            );
+        });
+
+        // Calcola la media per ogni settimana
+        labels = Object.keys(datiPerSettimana).sort((a, b) => a - b);
+        dati = labels.map(settimana => {
+            const valori = datiPerSettimana[settimana];
+            return valori.reduce((a, b) => a + b, 0) / valori.length;
+        });
+        
+        labels = labels.map(s => `${s}`);
+    } else {
+        // Usa le date
+        labels = datiFiltrati.map(record => formatDate(record.data));
+        dati = datiFiltrati.map(record => 
+            tipoGrafico === 'peso' ? parseFloat(record.peso) : parseFloat(record.volume)
+        );
+    }
+
+    if (window.myChart instanceof Chart) {
+        window.myChart.destroy();
+    }
+
+    const ctx = document.getElementById('chartContainer').getContext('2d');
+    window.myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: `${esercizio} - ${tipoGrafico === 'peso' ? 'Peso (kg)' : 'Volume (kg)'}`,
+            data: dati,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+            fill: false,
+            // Aggiunta punto per ogni dato
+            pointRadius: 5,
+            pointBackgroundColor: 'rgb(75, 192, 192)'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: tipoGrafico === 'peso' ? 'Peso (kg)' : 'Volume (kg)'
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: asseX === 'settimana' ? 'Settimana' : 'Data'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            // Aggiunta visualizzazione etichette dati
+            datalabels: {
+                display: true,
+                color: 'rgb(75, 192, 192)',
+                anchor: 'end',
+                align: 'top',
+                formatter: function(value) {
+                    return value + ' kg';
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        if (asseX === 'settimana') {
+                            return `${tipoGrafico === 'peso' ? 'Peso' : 'Volume'}: ${context.raw.toFixed(1)}kg`;
+                        } else {
+                            const record = datiFiltrati[context.dataIndex];
+                            if (tipoGrafico === 'peso') {
+                                return `Peso: ${record.peso}kg (${record.serie}x${record.ripetizioni})`;
+                            } else {
+                                return `Volume: ${record.volume}kg`;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+});
+
+
+        showPopup('Grafico aggiornato', 2000);
+        }
+
+function openTab(tabName) {
+    console.log("Apertura tab:", tabName);
+    const tabs = document.getElementsByClassName('tab');
+    const tabContents = document.getElementsByClassName('tab-content');
+
+    for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+        tabContents[i].classList.remove('active');
+    }
+
+    document.getElementById(tabName).classList.add('active');
+    document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
+
+    // Gestione specifica per ogni tab
+    if (tabName === 'grafico') {
+        console.log("Caricamento dashboard");
+        loadData();
+    } else if (tabName === 'progressi') {
+        console.log("Caricamento tracker");
+        if (workoutsData && workoutsData.length > 0) {
+            popolaTabellaProgressi(workoutsData);
+        } else {
+            sincronizzaDati(true).then(() => {
+                popolaTabellaProgressi(workoutsData);
+            });
+        }
+    } else if (tabName === 'impostazioni') {
+        updateUserSelectInSettings();
+    }
+}
+
+
+
+        function toggleDarkMode() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            console.log('Toggle click rilevato');
+            console.log('Stato checkbox prima:', darkModeToggle.checked);
+            console.log('Stato dark mode prima:', document.body.classList.contains('dark-mode'));
+            
+            // Inverti lo stato
+            const isDarkMode = !document.body.classList.contains('dark-mode');
+            
+            // Aggiorna la checkbox e la classe body
+            darkModeToggle.checked = isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            
+            // Salva la preferenza
+            localStorage.setItem('darkMode', isDarkMode);
+            
+            console.log('Nuovo stato checkbox:', darkModeToggle.checked);
+            console.log('Nuovo stato dark mode:', document.body.classList.contains('dark-mode'));
+            
+            showPopup(isDarkMode ? 'Dark Mode attivata!' : 'Dark Mode disattivata!');
+        }
+
+        function showPopup(message, duration = 3000) {
+        const existingPopup = document.querySelector('.popup');
+        if (existingPopup) {
+            existingPopup.remove();
+        }
+
+const popup = document.createElement('div');
+popup.className = 'popup';
+popup.textContent = message;
+document.body.appendChild(popup);
+popup.style.display = 'block';
+
+setTimeout(() => {
+    popup.classList.add('hiding');
+    setTimeout(() => popup.remove(), 300);
+}, duration);
+}
+
+function vibrate(duration = 50) {
+if (navigator.vibrate) {
+    navigator.vibrate(duration);
+}
+}
+
+function filtraProgressi() {
+    const anno = document.getElementById('filterAnno').value;
+    const settimana = document.getElementById('filterSettimana').value;
+    const esercizio = document.getElementById('filterEsercizio').value;
+
+    try {
+        let datiFiltrati = [...workoutsData];
+
+        if (anno) {
+            datiFiltrati = datiFiltrati.filter(row => {
+                const dataParts = row.data.split('/');
+                if (dataParts.length === 3) {
+                    return dataParts[2] === anno;
+                }
+                const dataObj = new Date(row.data);
+                return dataObj.getFullYear().toString() === anno;
+            });
+        }
+
+        if (settimana) {
+            datiFiltrati = datiFiltrati.filter(row => 
+                row.settimana.toString() === settimana
+            );
+        }
+
+        if (esercizio) {
+            datiFiltrati = datiFiltrati.filter(row => 
+                row.esercizio === esercizio
+            );
+        }
+
+        console.log('Dati filtrati:', datiFiltrati);
+        popolaTabellaProgressi(datiFiltrati);
+        showPopup('Filtri applicati con successo!');
+        vibrate();
+
+    } catch (error) {
+        console.error('Errore nell\'applicazione dei filtri:', error);
+        showPopup('Errore nell\'applicazione dei filtri', 5000);
+    }
+}
+
+        function resetFiltri() {
+            document.getElementById('filterAnno').value = '';
+            document.getElementById('filterSettimana').value = '';
+            document.getElementById('filterEsercizio').value = '';
+            popolaTabellaProgressi(workoutsData);
+            showPopup('Filtri resettati');
+            vibrate();
+        }
+
+        function removeUser() {
+    try {
+        localStorage.removeItem('currentUser');
+    } catch (e) {
+        console.error("Errore nel rimuovere l'utente:", e);
+    }
+}
+
+function updateUserSelectInSettings() {
+    const currentUser = localStorage.getItem('currentUser');
+    const userSelect = document.getElementById('userSelect');
+    if (currentUser && userSelect) {
+        userSelect.value = currentUser;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    // Imposta la data odierna nel campo data
+    const today = new Date();
+    today.setHours(12);
+    document.getElementById('data').valueAsDate = today;
+
+    // Gestione Dark Mode
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+        darkModeToggle.checked = true;
+    }
+    darkModeToggle.addEventListener('change', toggleDarkMode);
+
+    // Gestione Utente
+    const savedUser = getUser();
+    if (savedUser && SHEETS_URLS[savedUser]) {
+        document.getElementById('userSelect').value = savedUser;
+        SHEETS_URL = SHEETS_URLS[savedUser];
+        showPopup(`Bentornato ${savedUser.charAt(0).toUpperCase() + savedUser.slice(1)}!`);
+        
+        // Attendi la sincronizzazione iniziale
+        try {
+            await sincronizzaDati(true);
+        } catch (error) {
+            console.error('Errore nella sincronizzazione iniziale:', error);
+        }
+    } else {
+        showUserSelectionPopup();
+    }
+
+    // Event listener per il cambio utente
+document.getElementById('userSelect').addEventListener('change', async function(e) {
+    const user = e.target.value;
+    try {
+        await handleUserSelection(user);
+        showPopup('Utente cambiato: ' + e.target.options[e.target.selectedIndex].text);
+        loadData();
+    } catch (error) {
+        console.error('Errore nel cambio utente:', error);
+    }
+});
+
+
+    // Apri la tab iniziale
+    openTab('inserimento');
+
+    // Aggiungi event listeners per il calcolo del volume
+    ['peso', 'serie', 'ripetizioni'].forEach(id => {
+        document.getElementById(id).addEventListener('input', calcolaVolume);
+    });
+
+    // Aggiungi event listener per il form
+    document.getElementById('workoutForm').addEventListener('submit', salvaDati);
+
+    // Imposta la sincronizzazione automatica
+    setInterval(() => {
+        if (!document.hidden && !isSyncing && SHEETS_URL) {
+            console.log('Avvio sincronizzazione automatica');
+            sincronizzaDati(false);
+        }
+    }, 300000); // Ogni 5 minuti
+
+    // Gestione della visibilità della pagina
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && !isSyncing && SHEETS_URL) {
+            console.log('Sincronizzazione al ritorno sulla pagina');
+            sincronizzaDati(true);
+        }
+    });
+
+    // Debug e logging
+    debugStato();
+    console.log('Inizializzazione completata');
+});
+
+
+
+        // Sistema di logging
+        const DEBUG = true;
+        function log(...args) {
+            if (DEBUG) {
+                console.log(`[${new Date().toLocaleTimeString()}]`, ...args);
+            }
+        }
+
+        // Gestione delle tab
+function openTab(tabName) {
+    const tabs = document.getElementsByClassName('tab');
+    const tabContents = document.getElementsByClassName('tab-content');
+
+    for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+        tabContents[i].classList.remove('active');
+    }
+
+    document.getElementById(tabName).classList.add('active');
+    document.querySelector(`.tab[onclick="openTab('${tabName}')"]`).classList.add('active');
+
+    // Se si sta aprendo la tab impostazioni, aggiorna il select
+    if (tabName === 'impostazioni') {
+        updateUserSelectInSettings();
+    }
+}
+
+
+        // Funzione per debug rapido
+        function debugStato() {
+            log('=== STATO APPLICAZIONE ===');
+            log('Dati workout:', workoutsData.length, 'record');
+            log('Ultima sincronizzazione:', new Date(lastSyncTime).toLocaleString());
+            log('Dark mode:', document.body.classList.contains('dark-mode'));
+            log('Tab attiva:', document.querySelector('.tab.active').textContent);
+            log('========================');
+        }
+
+        // Gestione errori globale
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            log('ERRORE GLOBALE:', {
+                messaggio: msg,
+                url: url,
+                linea: lineNo,
+                colonna: columnNo,
+                error: error
+            });
+            showPopup('Si è verificato un errore. Controlla la console.', 5000);
+            return false;
+        };
+
+        
+</script>
+
+
+    <script>
+        // Script Dashboard
+        let workoutData = [];
+        const URLS = {
+            gio: 'https://script.google.com/macros/s/AKfycbwLP4EAUBa8EZ3iWdGyVW6Zc0YgfqKshWzqe2UJ04sxHVMTiSqkAW2V4YvbQ5iXjXvGzg/exec',
+            pari: 'https://script.google.com/macros/s/AKfycbyHb3lLbKgFesw8RSUoOoYHLoK2IfhpG8E_JFaD2QaS0V2427uy2nz0hd-__Ha0G9I/exec'
+        };
+        let CURRENT_URL = '';
+
+        document.getElementById('reportPeriod').addEventListener('change', () => {
+            const filteredData = filterData();
+            if (filteredData.length > 0) {
+                generatePeriodicReport(filteredData);
+            }
+        });
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        function changeUser() {
+            const user = localStorage.getItem('currentUser');
+            CURRENT_URL = URLS[user];
+            localStorage.clear();
+            loadData();
+        }
+
+async function loadData() {
+    const loadingScreen = document.getElementById('initialLoadingScreen');
+    
+    try {
+        let sharedData = getSharedWorkoutData();
+        
+        if (!sharedData || sharedData.length === 0) {
+            await new Promise((resolve) => {
+                sincronizzaDati(true).then(() => {
+                    sharedData = workoutsData;
+                    resolve();
+                }).catch(error => {
+                    console.error("Errore durante la sincronizzazione:", error);
+                    resolve();
+                });
+            });
+        }
+
+        if (sharedData && sharedData.length > 0) {
+            workoutData = sharedData;
+            populateExerciseSelect();
+            showPopup('App Pronta!');
+        } else {
+            document.getElementById('keyStats').innerHTML = 
+                '<p>Nessun dato disponibile. Assicurati di aver selezionato un utente e di aver registrato alcuni allenamenti.</p>';
+        }
+    } catch (error) {
+        console.error('Errore in loadData:', error);
+        handleError(error, 'loadData');
+    } finally {
+        // Nascondi il loading screen con una transizione fluida
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+        }, 500); // Tempo della transizione
+    }
+}
+
+
+
+
+function populateExerciseSelect() {
+    console.log("Inizio populateExerciseSelect con dati:", workoutData);
+    const select = document.getElementById('exerciseSelect');
+    if (!select) {
+        console.error('Select element non trovato');
+        return;
+    }
+
+    select.innerHTML = '<option value="">Esercizio</option>';
+    
+    if (!workoutData || workoutData.length === 0) {
+        console.log('Nessun dato disponibile per popolare il select');
+        return;
+    }
+
+    const exercises = [...new Set(workoutData.map(workout => workout.esercizio))].sort();
+    console.log("Esercizi trovati:", exercises);
+    
+    exercises.forEach(exercise => {
+        const option = document.createElement('option');
+        option.value = exercise;
+        option.textContent = exercise;
+        select.appendChild(option);
+    });
+    
+    select.addEventListener('change', updateDashboard);
+    document.getElementById('viewType').addEventListener('change', updateDashboard);
+    
+    console.log("Select popolato con successo");
+}
+
+function filterData() {
+    const exercise = document.getElementById('exerciseSelect').value;
+    if (!exercise || !workoutsData || !Array.isArray(workoutsData)) {
+        console.log('Dati non validi o esercizio non selezionato');
+        return [];
+    }
+
+    let filteredData = workoutsData
+        .filter(workout => workout.esercizio === exercise)
+        .map(workout => ({
+            ...workout,
+            peso: Number(workout.peso),
+            volume: Number(workout.volume),
+            data: workout.data
+        }));
+
+    // Ordina per data
+    filteredData.sort((a, b) => {
+        const dateA = parseDate(a.data);
+        const dateB = parseDate(b.data);
+        return dateA - dateB;
+    });
+
+    return filteredData;
+}
+
+function calculateKeyStats(data) {
+    const initialWeight = parseFloat(data[0].peso);
+    const latestWeight = parseFloat(data[data.length - 1].peso);
+    const maxWeight = Math.max(...data.map(w => parseFloat(w.peso)));
+    const totalVolume = data.reduce((sum, w) => sum + parseFloat(w.volume), 0);
+    const averageVolume = totalVolume / data.length;
+    
+    // Aggiungi controllo per evitare NaN
+    const weightImprovement = initialWeight !== 0 ? 
+        ((latestWeight - initialWeight) / initialWeight * 100).toFixed(2) : 
+        0;
+        
+    return { 
+        sessionsCount: data.length, 
+        maxWeight, 
+        weightImprovement,
+        averageVolume 
+    };
+}
+
+
+function updateKeyStats(stats) {
+    const keyStatsContainer = document.getElementById('keyStats');
+    keyStatsContainer.innerHTML = `
+        <div class="stat-card">
+            <div class="stat-value">${stats.sessionsCount}</div>
+            <div class="stat-label">Sessioni Totali</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${stats.maxWeight} kg</div>
+            <div class="stat-label">Peso Massimo</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${stats.weightImprovement}%</div>
+            <div class="stat-label">Miglioramento Peso</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${Math.round(stats.averageVolume)} kg</div>
+            <div class="stat-label">Volume Medio</div>
+        </div>
+    `;
+}
+
+function createWeightChart(data) {
+    const existingChart = Chart.getChart('weightChart');
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    const viewType = document.getElementById('viewType').value;
+    const groupedData = viewType === 'week' ? groupByWeek(data) : data;
+    const maxWeight = Math.max(...groupedData.map(w => Number(w.peso)));
+    const padding = maxWeight * 0.1;
+
+    const ctx = document.getElementById('weightChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: groupedData.map(w => viewType === 'week' ? w.settimana : formatDate(w.data)),
+            datasets: [{
+                label: 'Peso (kg)',
+                data: groupedData.map(w => Number(w.peso)),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1,
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    max: maxWeight + padding,
+                    ticks: {
+                        // Formatta i numeri sull'asse Y
+                        callback: function(value) {
+                            // Opzione 1: Mostra solo numeri interi
+                            // return Math.floor(value) + 'kg';
+                            
+                            // Opzione 2: Mostra numeri con 2 decimali
+                            return value.toFixed(0) + 'kg';
+                        }
+                    }
+                },
+                x: {
+                    display: true,
+                    ticks: {
+                        maxRotation: viewType === 'week' ? 0 : 45,
+                        minRotation: viewType === 'week' ? 0 : 45
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return viewType === 'week' ? 'Settimana ' + context[0].label : context[0].label;
+                        },
+                        label: function(context) {
+                            // Formatta anche i valori nel tooltip
+                            return `Peso: ${context.parsed.y.toFixed(2)}kg`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createVolumeChart(data) {
+    const existingChart = Chart.getChart('volumeChart');
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    const viewType = document.getElementById('viewType').value;
+    const groupedData = viewType === 'week' ? groupByWeek(data) : data;
+    const maxVolume = Math.max(...groupedData.map(w => Number(w.volume)));
+    const padding = maxVolume * 0.1;
+
+    const ctx = document.getElementById('volumeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: groupedData.map(w => viewType === 'week' ? w.settimana : formatDate(w.data)),
+            datasets: [{
+                label: 'Volume (kg)',
+                data: groupedData.map(w => Number(w.volume)),
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: maxVolume + padding,
+                    ticks: {
+                        // Modifica qui per limitare i decimali
+                        callback: function(value) {
+                            return Number.isInteger(value) ? value : value.toFixed(0) + 'kg';
+                        }
+                    }
+                },
+                x: {
+                    display: true,
+                    ticks: {
+                        maxRotation: viewType === 'week' ? 0 : 45,
+                        minRotation: viewType === 'week' ? 0 : 45
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            // Formatta anche i tooltip con massimo 2 decimali
+                            const value = Number.isInteger(context.parsed.y) ? 
+                                context.parsed.y : 
+                                context.parsed.y.toFixed(2);
+                            return `Volume: ${value}kg`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createHeatMap(data) {
+    // Aggiungi controlli per la navigazione
+    const container = document.getElementById('heatmapContainer');
+    container.innerHTML = `
+        <div class="heatmap-controls">
+            <button class="nav-button" id="prevMonth">&lt;</button>
+            <span id="currentPeriod" class="current-period"></span>
+            <button class="nav-button" id="nextMonth">&gt;</button>
+        </div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+    `;
+
+    // Stato corrente del calendario
+    let currentDate = new Date();
+    
+    // Funzione per aggiornare il calendario
+    function updateCalendar(date) {
+        const grid = document.getElementById('heatmapGrid');
+        grid.innerHTML = '';
+        
+        // Aggiorna l'indicatore del periodo
+        const monthYear = date.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+        document.getElementById('currentPeriod').textContent = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
+
+        // Organizza i dati per data
+        const workoutsByDate = {};
+        data.forEach(workout => {
+            let workoutDate = workout.data;
+            if (!workoutDate.includes('/')) {
+                const d = new Date(workoutDate);
+                workoutDate = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+            }
+            workoutsByDate[workoutDate] = {
+                volume: Number(workout.volume),
+                peso: Number(workout.peso)
+            };
+        });
+
+        // Aggiungi intestazioni giorni della settimana
+        const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+        weekDays.forEach(day => {
+            const header = document.createElement('div');
+            header.className = 'heatmap-header';
+            header.textContent = day;
+            grid.appendChild(header);
+        });
+
+        // Trova il primo giorno del mese
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        let startDay = firstDay.getDay() - 1; // Lunedì = 0
+        if (startDay === -1) startDay = 6; // Domenica
+
+        // Aggiungi celle vuote per allineare con il giorno della settimana corretto
+        for (let i = 0; i < startDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'heatmap-cell empty';
+            grid.appendChild(emptyCell);
+        }
+
+        // Aggiungi i giorni del mese
+        const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+        const today = new Date();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentDay = new Date(date.getFullYear(), date.getMonth(), day);
+            const dateStr = `${day.toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+            
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-cell';
+
+            // Evidenzia il giorno corrente
+            if (today.toDateString() === currentDay.toDateString()) {
+                cell.classList.add('today');
+            }
+            
+            if (workoutsByDate[dateStr]) {
+                const intensity = workoutsByDate[dateStr].volume;
+                const maxVolume = Math.max(...data.map(d => Number(d.volume)));
+                const opacity = intensity / maxVolume;
+                cell.style.backgroundColor = `rgba(75, 192, 192, ${opacity})`;
+                cell.title = `${dateStr}\nVolume: ${intensity.toFixed(1)}kg`;
+            } else {
+                cell.title = dateStr;
+            }
+            
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.textContent = day;
+            cell.appendChild(dayNumber);
+            
+            grid.appendChild(cell);
+        }
+    }
+
+    // Event listeners per i pulsanti di navigazione
+    document.getElementById('prevMonth').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        updateCalendar(currentDate);
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        updateCalendar(currentDate);
+    });
+
+    // Inizializza il calendario
+    updateCalendar(currentDate);
+}
+
+
+function calculatePerformanceIndicators(data) {
+    const volumeIntensity = average(data.map(d => Number(d.volume)));
+    const firstWeight = Number(data[0].peso);
+    const lastWeight = Number(data[data.length - 1].peso);
+    const progressionRate = ((lastWeight - firstWeight) / firstWeight) * 100;
+    const weights = data.map(d => Number(d.peso));
+    const standardDev = calculateStandardDeviation(weights);
+    const consistencyScore = 100 - ((standardDev / average(weights)) * 100);
+    
+    updatePerformanceIndicators({
+        volumeIntensity,
+        progressionRate,
+        consistencyScore
+    });
+}
+
+function updatePerformanceIndicators(indicators) {
+    const container = document.getElementById('performanceIndicators');
+    container.innerHTML = `
+        <div class="performance-indicator">
+            <div class="indicator-value">${Math.round(indicators.volumeIntensity)}kg</div>
+            <div class="indicator-label">Volume Medio</div>
+        </div>
+        <div class="performance-indicator">
+            <div class="indicator-value">${indicators.progressionRate.toFixed(1)}%</div>
+            <div class="indicator-label">Tasso di Progressione</div>
+        </div>
+        <div class="performance-indicator">
+            <div class="indicator-value">${indicators.consistencyScore.toFixed(1)}%</div>
+            <div class="indicator-label">Score Consistenza</div>
+        </div>
+    `;
+}
+
+function analyzePeaksAndValleys(data) {
+    const weights = data.map(d => Number(d.peso));
+    const peaks = [];
+    const valleys = [];
+    
+    for (let i = 1; i < weights.length - 1; i++) {
+        if (weights[i] > weights[i-1] && weights[i] > weights[i+1]) {
+            peaks.push({
+                value: weights[i],
+                date: data[i].data
+            });
+        }
+        if (weights[i] < weights[i-1] && weights[i] < weights[i+1]) {
+            valleys.push({
+                value: weights[i],
+                date: data[i].data
+            });
+        }
+    }
+
+    displayPeaksAndValleys(peaks, valleys);
+}
+
+function displayPeaksAndValleys(peaks, valleys) {
+    const container = document.getElementById('peaksValleys');
+    let html = '';
+
+    peaks.slice(-3).forEach(peak => {
+        html += `
+            <div class="peak-valley-item peak">
+                <span>Picco: ${peak.value}kg</span>
+                <span>${formatDate(peak.date)}</span>
+            </div>
+        `;
+    });
+
+    valleys.slice(-3).forEach(valley => {
+        html += `
+            <div class="peak-valley-item valley">
+                <span>Minimo: ${valley.value}kg</span>
+                <span>${formatDate(valley.date)}</span>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+function generatePeriodicReport(data) {
+    const period = document.getElementById('reportPeriod').value;
+    const groupedData = groupDataByPeriod(data, period);
+    
+    const report = {
+        averages: calculatePeriodAverages(groupedData),
+        improvements: calculatePeriodImprovements(groupedData),
+        trends: analyzePeriodTrends(groupedData)
+    };
+
+    displayPeriodicReport(report);
+}
+
+function groupDataByPeriod(data, period) {
+    const grouped = {};
+    
+    data.forEach(item => {
+        let key;
+        const date = parseDate(item.data);
+        
+        switch(period) {
+            case 'week':
+                key = `${date.getFullYear()}-W${getWeekNumber(date)}`;
+                break;
+            case 'month':
+                key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+                break;
+            case 'quarter':
+                key = `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`;
+                break;
+        }
+        
+        if (!grouped[key]) {
+            grouped[key] = [];
+        }
+        grouped[key].push(item);
+    });
+    
+    return grouped;
+}
+
+function calculatePeriodAverages(groupedData) {
+    const allWeights = [];
+    const allVolumes = [];
+    
+    Object.values(groupedData).forEach(group => {
+        group.forEach(item => {
+            allWeights.push(Number(item.peso));
+            allVolumes.push(Number(item.volume));
+        });
+    });
+    
+    return {
+        weight: average(allWeights),
+        volume: average(allVolumes)
+    };
+}
+
+function calculatePeriodImprovements(groupedData) {
+    const periods = Object.keys(groupedData).sort();
+    if (periods.length < 2) return { weightChange: 0, volumeChange: 0 };
+    
+    const firstPeriod = groupedData[periods[0]];
+    const lastPeriod = groupedData[periods[periods.length - 1]];
+    
+    const firstWeight = average(firstPeriod.map(item => Number(item.peso)));
+    const lastWeight = average(lastPeriod.map(item => Number(item.peso)));
+    const firstVolume = average(firstPeriod.map(item => Number(item.volume)));
+    const lastVolume = average(lastPeriod.map(item => Number(item.volume)));
+    
+    return {
+        weightChange: lastWeight - firstWeight,
+        volumeChange: lastVolume - firstVolume
+    };
+}
+
+function analyzePeriodTrends(groupedData) {
+    const periods = Object.keys(groupedData).sort();
+    const weights = periods.map(period => 
+        average(groupedData[period].map(item => Number(item.peso)))
+    );
+    
+    const trend = calculateTrend(weights);
+    
+    return {
+        description: trend > 0 ? 'Trend positivo' : trend < 0 ? 'Trend negativo' : 'Trend stabile'
+    };
+}
+
+function displayPeriodicReport(report) {
+    const container = document.getElementById('periodicReport');
+    container.innerHTML = `
+        <div class="report-section">
+            <h4>Medie del Periodo</h4>
+            <p>Peso Medio: ${report.averages.weight.toFixed(1)}kg</p>
+            <p>Volume Medio: ${report.averages.volume.toFixed(1)}kg</p>
+        </div>
+        <div class="report-section">
+            <h4>Miglioramenti</h4>
+            <p>Variazione Peso: ${report.improvements.weightChange.toFixed(1)}kg</p>
+            <p>Variazione Volume: ${report.improvements.volumeChange.toFixed(1)}kg</p>
+        </div>
+        <div class="report-section">
+            <h4>Trend</h4>
+            <p>${report.trends.description}</p>
+        </div>
+    `;
+}
+
+function analyzeCorrelations(data) {
+    const correlations = {
+        weightVolume: calculateCorrelation(
+            data.map(d => Number(d.peso)),
+            data.map(d => Number(d.volume))
+        ),
+        weightRest: calculateRestCorrelation(data),
+        volumeFrequency: calculateFrequencyCorrelation(data)
+    };
+
+    displayCorrelations(correlations);
+}
+
+
+
+function calculateRestCorrelation(data) {
+    const restDays = [];
+    const improvements = [];
+    
+    for (let i = 1; i < data.length; i++) {
+        const rest = (parseDate(data[i].data) - parseDate(data[i-1].data)) / (1000 * 60 * 60 * 24);
+        const improvement = Number(data[i].peso) - Number(data[i-1].peso);
+        restDays.push(rest);
+        improvements.push(improvement);
+    }
+    
+    return calculateCorrelation(restDays, improvements);
+}
+
+
+function calculateFrequencyCorrelation(data) {
+    if (data.length < 2) return 0;
+
+    const frequencies = [];
+    const volumes = [];
+    
+    for (let i = 1; i < data.length; i++) {
+        try {
+            const date1 = parseDate(data[i-1].data);
+            const date2 = parseDate(data[i].data);
+            
+            // Calcola i giorni tra gli allenamenti
+            const daysBetween = Math.max(1, Math.round((date2 - date1) / (1000 * 60 * 60 * 24)));
+            
+            // La frequenza è 1/giorni (più giorni = frequenza minore)
+            const frequency = 1 / daysBetween;
+            
+            // Volume dell'allenamento corrente
+            const volume = Number(data[i].volume);
+            
+            // Aggiungi solo se entrambi i valori sono validi
+            if (!isNaN(frequency) && !isNaN(volume) && frequency > 0) {
+                frequencies.push(frequency);
+                volumes.push(volume);
+            }
+        } catch (error) {
+            console.error('Errore nel calcolo della frequenza:', error);
+            continue;
+        }
+    }
+
+    // Calcola la correlazione solo se abbiamo abbastanza dati validi
+    if (frequencies.length > 1 && volumes.length > 1) {
+        return calculateCorrelation(frequencies, volumes);
+    }
+    
+    return 0;
+}
+
+function calculateCorrelation(x, y) {
+    if (x.length !== y.length || x.length < 2) return 0;
+
+    const n = x.length;
+    const sum_x = x.reduce((a, b) => a + b, 0);
+    const sum_y = y.reduce((a, b) => a + b, 0);
+    const sum_xy = x.reduce((a, b, i) => a + b * y[i], 0);
+    const sum_x2 = x.reduce((a, b) => a + b * b, 0);
+    const sum_y2 = y.reduce((a, b) => a + b * b, 0);
+
+    const numerator = (n * sum_xy - sum_x * sum_y);
+    const denominator = Math.sqrt((n * sum_x2 - sum_x * sum_x) * (n * sum_y2 - sum_y * sum_y));
+
+    if (denominator === 0) return 0;
+    
+    const correlation = numerator / denominator;
+    return isNaN(correlation) ? 0 : correlation;
+}
+
+function displayCorrelations(correlations) {
+    const container = document.getElementById('correlationAnalysis');
+    container.innerHTML = `
+        <div class="correlation-item">
+            <span>Peso-Volume</span>
+            <span class="correlation-value ${getCorrelationClass(correlations.weightVolume)}">
+                ${correlations.weightVolume.toFixed(2)}
+            </span>
+        </div>
+        <div class="correlation-item">
+            <span>Peso-Riposo</span>
+            <span class="correlation-value ${getCorrelationClass(correlations.weightRest)}">
+                ${correlations.weightRest.toFixed(2)}
+            </span>
+        </div>
+        <div class="correlation-item">
+            <span>Volume-Frequenza</span>
+            <span class="correlation-value ${getCorrelationClass(correlations.volumeFrequency)}">
+                ${correlations.volumeFrequency.toFixed(2)}
+            </span>
+        </div>
+    `;
+}
+
+function getCorrelationClass(correlation) {
+    if (isNaN(correlation)) return 'correlation-weak';
+    const abs = Math.abs(correlation);
+    if (abs > 0.7) return 'correlation-strong';
+    if (abs > 0.3) return 'correlation-moderate';
+    return 'correlation-weak';
+}
+
+
+
+
+function average(arr) {
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+function calculateStandardDeviation(values) {
+    const avg = average(values);
+    const squareDiffs = values.map(value => Math.pow(value - avg, 2));
+    const avgSquareDiff = average(squareDiffs);
+    return Math.sqrt(avgSquareDiff);
+}
+
+function calculateTrend(values) {
+    const n = values.length;
+    if (n < 2) return 0;
+    
+    const xMean = (n - 1) / 2;
+    const yMean = average(values);
+    
+    let numerator = 0;
+    let denominator = 0;
+    
+    for (let i = 0; i < n; i++) {
+        numerator += (i - xMean) * (values[i] - yMean);
+        denominator += Math.pow(i - xMean, 2);
+    }
+    
+    return denominator ? numerator / denominator : 0;
+}
+
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
+function formatDate(dateString) {
+    const date = parseDate(dateString);
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+function parseDate(dateString) {
+    if (dateString.includes('/')) {
+        const [day, month, year] = dateString.split('/');
+        return new Date(year, month - 1, day);
+    }
+    return new Date(dateString);
+}
+
+function showLoading(show) {
+    document.getElementById('loadingIndicator').style.display = show ? 'flex' : 'none';
+}
+
+function handleError(error, context) {
+    console.error(`Error in ${context}:`, error);
+    const errorContainer = document.getElementById('errorContainer');
+    errorContainer.innerHTML = `
+        <div class="error-message">
+            <h3>Si è verificato un errore</h3>
+            <p>Dettagli: ${error.message}</p>
+            <button onclick="retryOperation('${context}')">Riprova</button>
+        </div>
+    `;
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+}
+
+function updateDashboard() {
+    const filteredData = filterData();
+    if (!filteredData || filteredData.length === 0) {
+        console.log('Nessun dato filtrato disponibile');
+        document.getElementById('keyStats').innerHTML = '<p>Seleziona un esercizio per visualizzare i dati</p>';
+        return;
+    }
+
+    try {
+        const stats = calculateKeyStats(filteredData);
+        updateKeyStats(stats);
+        createWeightChart(filteredData);
+        createVolumeChart(filteredData);
+        createAdvancedVisualizations(filteredData);
+        analyzeVolumeDistribution(filteredData);
+        analyzeProgress(filteredData);
+        createHeatMap(filteredData);
+        calculatePerformanceIndicators(filteredData);
+        analyzePeaksAndValleys(filteredData);
+        generatePeriodicReport(filteredData);
+        analyzeCorrelations(filteredData);
+    } catch (error) {
+        console.error('Errore nell\'aggiornamento della dashboard:', error);
+        showPopup('Errore nell\'aggiornamento della dashboard', 5000);
+    }
+}
+
+function groupByWeek(data) {
+    const weekData = {};
+    data.forEach(item => {
+        const week = item.settimana;
+        
+        if (!weekData[week]) {
+            weekData[week] = {
+                settimana: week,
+                peso: [],
+                volume: 0, // Inizializza il volume a 0
+                data: []
+            };
+        }
+        weekData[week].peso.push(Number(item.peso));
+        weekData[week].volume += Number(item.volume); // Somma i volumi invece di inserirli in un array
+        weekData[week].data.push(item.data);
+    });
+
+    // Convertiamo in array e ordiniamo per numero di settimana
+    return Object.entries(weekData)
+        .map(([week, values]) => ({
+            settimana: week,
+            peso: average(values.peso), // La media dei pesi rimane invariata
+            volume: values.volume, // Il volume è già la somma totale
+            data: values.data[0]
+        }))
+        .sort((a, b) => Number(a.settimana) - Number(b.settimana));
+}
+
+function analyzeVolumeDistribution(data) {
+    const existingChart = Chart.getChart('volumeDistribution');
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    const viewType = document.getElementById('viewType').value;
+    const groupedData = viewType === 'week' ? groupByWeek(data) : data;
+
+    const maxVolume = Math.max(...groupedData.map(d => Number(d.volume)));
+    const padding = maxVolume * 0.1;
+
+    const volumeChart = new Chart(document.getElementById('volumeDistribution').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: groupedData.map(d => viewType === 'week' ? d.settimana : formatDate(d.data)),
+            datasets: [{
+                label: 'Volume Totale',
+                data: groupedData.map(d => Number(d.volume)),
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                type: 'bar'
+            }, {
+                label: 'Media Mobile',
+                data: calculateMovingAverage(groupedData.map(d => Number(d.volume)), 3),
+                borderColor: 'rgba(255, 99, 132, 1)',
+                type: 'line',
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: maxVolume + padding,
+                    title: {
+                        display: true,
+                        text: 'Volume (kg)'
+                    }
+                },
+                x: {
+                    display: true,
+                    ticks: {
+                        maxRotation: viewType === 'week' ? 0 : 45,
+                        minRotation: viewType === 'week' ? 0 : 45
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return viewType === 'week' ? 'Settimana ' + context[0].label : context[0].label;
+                        },
+                        label: function(context) {
+                            if (context.dataset.type === 'line') {
+                                return `Media Mobile: ${context.parsed.y.toFixed(1)}kg`;
+                            }
+                            return `Volume: ${context.parsed.y}kg`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createAdvancedVisualizations(data) {
+    const existingChart = Chart.getChart('advancedChart');
+    if (existingChart) {
+        existingChart.destroy();
+    }
+
+    const ctx = document.getElementById('advancedChart').getContext('2d');
+    const viewType = document.getElementById('viewType').value;
+    const groupedData = viewType === 'week' ? groupByWeek(data) : data;
+
+    const maxX = Math.max(...groupedData.map(d => Number(d.peso))) * 1.1;
+    const maxY = Math.max(...groupedData.map(d => Number(d.volume))) * 1.1;
+
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Relazione Peso-Volume',
+                data: groupedData.map(d => ({
+                    x: Number(d.peso),
+                    y: Number(d.volume),
+                    date: viewType === 'week' ? d.settimana : formatDate(d.data)
+                })),
+                backgroundColor: 'rgba(75, 192, 192, 0.6)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    max: maxX,
+                    title: {
+                        display: true,
+                        text: 'Peso (kg)'
+                    }
+                },
+                y: {
+                    max: maxY,
+                    title: {
+                        display: true,
+                        text: 'Volume (kg)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return Math.round(value) + 'kg';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].raw.date;
+                        },
+                        label: function(context) {
+                            return [
+                                `Peso: ${context.raw.x}kg`,
+                                `Volume: ${Math.round(context.raw.y)}kg`
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function analyzeProgress(data) {
+    let analysis = '';
+    const latestWeight = parseFloat(data[data.length - 1].peso);
+    const initialWeight = parseFloat(data[0].peso);
+    const weightChange = latestWeight - initialWeight;
+    
+    if (weightChange > 0) {
+        analysis += `<div class="progress-indicator progress-positive">
+            Progresso positivo: +${weightChange.toFixed(2)} kg
+        </div>`;
+    } else if (weightChange < 0) {
+        analysis += `<div class="progress-indicator progress-negative">
+            Diminuzione del peso: ${weightChange.toFixed(2)} kg
+        </div>`;
+    } else {
+        analysis += `<div class="progress-indicator progress-neutral">
+            Nessun cambiamento significativo nel peso
+        </div>`;
+    }
+
+    const startDate = parseDate(data[0].data);
+    const endDate = parseDate(data[data.length - 1].data);
+    const daysDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+    
+    let timeAnalysis = '';
+    if (daysDiff > 30) {
+        const months = Math.floor(daysDiff / 30);
+        const remainingDays = daysDiff % 30;
+        timeAnalysis = `${months} ${months === 1 ? 'mese' : 'mesi'}`;
+        if (remainingDays > 0) {
+            timeAnalysis += ` e ${remainingDays} ${remainingDays === 1 ? 'giorno' : 'giorni'}`;
+        }
+    } else {
+        timeAnalysis = `${daysDiff} ${daysDiff === 1 ? 'giorno' : 'giorni'}`;
+    }
+
+    analysis += `<div class="progress-indicator progress-neutral">
+        Tempo trascorso: ${timeAnalysis}
+    </div>`;
+
+    document.getElementById('progressAnalysis').innerHTML = analysis;
+}
+
+function calculateMovingAverage(data, window) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        const start = Math.max(0, i - window + 1);
+        const values = data.slice(start, i + 1);
+        result.push(values.reduce((a, b) => a + b, 0) / values.length);
+    }
+    return result;
+}
+function retryOperation(context) {
+    if (context === 'loadData') {
+        loadData();
+    }
+}
+
+function calculateTrendLineSlope(values) {
+    const n = values.length;
+    const x = Array.from({length: n}, (_, i) => i);
+    const y = values;
+    
+    const xMean = average(x);
+    const yMean = average(y);
+    
+    let numerator = 0;
+    let denominator = 0;
+    
+    for (let i = 0; i < n; i++) {
+        numerator += (x[i] - xMean) * (y[i] - yMean);
+        denominator += Math.pow(x[i] - xMean, 2);
+    }
+    
+    return denominator ? numerator / denominator : 0;
+}
+
+function calculateImprovement(firstHalf, secondHalf) {
+    const firstAvg = average(firstHalf.map(d => Number(d.peso)));
+    const secondAvg = average(secondHalf.map(d => Number(d.peso)));
+    return ((secondAvg - firstAvg) / firstAvg) * 100;
+}
+
+function findLocalMaxima(data) {
+    const maxima = [];
+    for (let i = 1; i < data.length - 1; i++) {
+        if (data[i] > data[i-1] && data[i] > data[i+1]) {
+            maxima.push(i);
+        }
+    }
+    return maxima;
+}
+
+function findLocalMinima(data) {
+    const minima = [];
+    for (let i = 1; i < data.length - 1; i++) {
+        if (data[i] < data[i-1] && data[i] < data[i+1]) {
+            minima.push(i);
+        }
+    }
+    return minima;
+}
+
+function correlateWeightVolume(data) {
+    const weights = data.map(d => Number(d.peso));
+    const volumes = data.map(d => Number(d.volume));
+    return calculateCorrelation(weights, volumes);
+}
+
+function correlateRestProgress(data) {
+    const restPeriods = [];
+    const progressions = [];
+    for (let i = 1; i < data.length; i++) {
+        const rest = (parseDate(data[i].data) - parseDate(data[i-1].data)) / (1000 * 60 * 60 * 24);
+        const progress = Number(data[i].peso) - Number(data[i-1].peso);
+        restPeriods.push(rest);
+        progressions.push(progress);
+    }
+    return calculateCorrelation(restPeriods, progressions);
+}
+
+function analyzeFrequencyEffect(data) {
+    const frequencies = [];
+    const improvements = [];
+    for (let i = 1; i < data.length; i++) {
+        const daysBetween = (parseDate(data[i].data) - parseDate(data[i-1].data)) / (1000 * 60 * 60 * 24);
+        const improvement = Number(data[i].peso) - Number(data[i-1].peso);
+        frequencies.push(1/daysBetween);
+        improvements.push(improvement);
+    }
+    return calculateCorrelation(frequencies, improvements);
+}
+
+function analyzePeriodTrends(groupedData) {
+    const periods = Object.keys(groupedData).sort();
+    const weights = periods.map(period => 
+        average(groupedData[period].map(item => Number(item.peso)))
+    );
+    
+    let description = 'Trend stabile';
+    const trend = calculateTrendLineSlope(weights);
+    
+    if (trend > 0.1) {
+        description = 'Trend fortemente positivo';
+    } else if (trend > 0) {
+        description = 'Trend leggermente positivo';
+    } else if (trend < -0.1) {
+        description = 'Trend fortemente negativo';
+    } else if (trend < 0) {
+        description = 'Trend leggermente negativo';
+    }
+    
+    return { description, slope: trend };
+}
+
+function calculatePeriodAverages(groupedData) {
+    let totalWeight = 0;
+    let totalVolume = 0;
+    let count = 0;
+    
+    Object.values(groupedData).forEach(group => {
+        group.forEach(item => {
+            totalWeight += Number(item.peso);
+            totalVolume += Number(item.volume);
+            count++;
+        });
+    });
+    
+    return {
+        weight: count ? totalWeight / count : 0,
+        volume: count ? totalVolume / count : 0
+    };
+}
+
+function calculateVolumeIntensity(data) {
+    const volumes = data.map(d => Number(d.volume));
+    return average(volumes);
+}
+
+function calculateProgressionRate(data) {
+    if (data.length < 2) return 0;
+    const firstWeight = Number(data[0].peso);
+    const lastWeight = Number(data[data.length - 1].peso);
+    return ((lastWeight - firstWeight) / firstWeight) * 100;
+}
+
+function calculateConsistencyScore(data) {
+    const weights = data.map(d => Number(d.peso));
+    const standardDev = calculateStandardDeviation(weights);
+    const meanWeight = average(weights);
+    return Math.max(0, 100 - (standardDev / meanWeight * 100));
+}
+
+
+        loadData();
+        
+    </script>
+
+</body>
+</html>
