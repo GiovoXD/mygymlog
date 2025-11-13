@@ -931,6 +931,7 @@ input:checked + .toggle-slider:before {
         <div class="controls">
             <select id="userSelects" style="display:none" onchange="changeUser()">
                 <option value="ale">Ale</option>
+                <option value="bizio">Bizio</option>
                 <option value="gian">Gian</option>
                 <option value="gio">Gio</option>
                 <option value="pari">Pari</option>
@@ -1024,6 +1025,7 @@ input:checked + .toggle-slider:before {
                     <select id="userSelect" name="user">
                         <option value="">Vuoto</option>
                         <option value="ale">Ale</option>
+                        <option value="bizio">Bizio</option>
                         <option value="gian">Gian</option>
                         <option value="gio">Gio</option>
                         <option value="pari">Pari</option>
@@ -1069,6 +1071,7 @@ input:checked + .toggle-slider:before {
     // Costanti per gli URL
     const SHEETS_URLS = {
         'ale': 'https://script.google.com/macros/s/AKfycbwJhfwEcF8P8EdSNdCtT7Ya4p_sRyZFpNqTWvGX_TDD5n7OWVWHy8qNjBkIgvhKMOLfaQ/exec',
+        'bizio': 'https://script.google.com/macros/s/AKfycbycdYnsqTlXwTrKrYoAZBYb6no9suGhlAM8vaGnwwLZ-w_2qeBHlnnH7tOJqD_hVxlAHg/exec',
         'gian': 'https://script.google.com/macros/s/AKfycbz0ycMxTxEAAHePpFsObOFbQcxONcwvhUHXa63g-7ozxDRWgvZj47YRbKiw_3jVLgaU/exec',
         'gio': 'https://script.google.com/macros/s/AKfycbwLP4EAUBa8EZ3iWdGyVW6Zc0YgfqKshWzqe2UJ04sxHVMTiSqkAW2V4YvbQ5iXjXvGzg/exec',
         'pari': 'https://script.google.com/macros/s/AKfycbyHb3lLbKgFesw8RSUoOoYHLoK2IfhpG8E_JFaD2QaS0V2427uy2nz0hd-__Ha0G9I/exec',
@@ -1147,6 +1150,7 @@ function showUserSelectionPopup() {
         <select id="initialUserSelect" style="width: 100%; margin: 10px 0; padding: 8px;">
             <option value="">Seleziona utente</option>
             <option value="ale">Ale</option>
+            <option value="bizio">Bizio</option>
             <option value="gian">Gian</option>
             <option value="gio">Gio</option>
             <option value="pari">Pari</option>
