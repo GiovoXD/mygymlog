@@ -1068,6 +1068,21 @@ input:checked + .toggle-slider:before {
     let workoutsData = [];
     let lastSyncTime = 0;
     let isSyncing = false;
+
+    // Utility per la formattazione degli esercizi
+    const formatExerciseDisplay = (str) => {
+        if (!str) return '';
+        return str
+            .replace(/-/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    };
+
+    const normalizeExerciseValue = (str) => {
+        if (!str) return '';
+        return str.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    };
     const SYNC_COOLDOWN = 60000; // 1 minuto di cooldown
 
     // Costanti per gli URL
@@ -1075,7 +1090,7 @@ input:checked + .toggle-slider:before {
         'ale': 'https://script.google.com/macros/s/AKfycbwJhfwEcF8P8EdSNdCtT7Ya4p_sRyZFpNqTWvGX_TDD5n7OWVWHy8qNjBkIgvhKMOLfaQ/exec',
         'bizio': 'https://script.google.com/macros/s/AKfycbycdYnsqTlXwTrKrYoAZBYb6no9suGhlAM8vaGnwwLZ-w_2qeBHlnnH7tOJqD_hVxlAHg/exec',
         'gian': 'https://script.google.com/macros/s/AKfycbz0ycMxTxEAAHePpFsObOFbQcxONcwvhUHXa63g-7ozxDRWgvZj47YRbKiw_3jVLgaU/exec',
-        'gio': 'https://script.google.com/macros/s/AKfycbwLP4EAUBa8EZ3iWdGyVW6Zc0YgfqKshWzqe2UJ04sxHVMTiSqkAW2V4YvbQ5iXjXvGzg/exec',
+        'gio': 'https://script.google.com/macros/s/AKfycbykkZjId175hjcPmLgAiOWGDkIH6gAoa2pkVe81T-Kj2kPh_xOhJU8lhLkGKZINfrHHwg/exec',
         'michy': 'https://script.google.com/macros/s/AKfycbznNmZp7QDDbq-9XdJuq9oWZAArHjz7JB6cDjT16NVUx6KtbHzUipYfW368rj-Lf9pF/exec',
         'pari': 'https://script.google.com/macros/s/AKfycbyHb3lLbKgFesw8RSUoOoYHLoK2IfhpG8E_JFaD2QaS0V2427uy2nz0hd-__Ha0G9I/exec',
         'rob': 'https://script.google.com/macros/s/AKfycbz8dVgc4As3X0TBbp3wSCS8rp8e7BXkfj4F5R7rhgqVL0abAS7LXtvYI8z2ku4HlS5x/exec',
@@ -1176,7 +1191,7 @@ function showUserSelectionPopup() {
 
 
 async function caricaEsercizi() {
-    const URL_ESERCIZI = 'https://script.google.com/macros/s/AKfycbwMgZ-7Xiej8u5xFVNiePJ_MKGWT6b0peRKjH1LHZmNHIyQuYLJkFM_UmKNyiFyguKbTQ/exec';
+    const URL_ESERCIZI = 'https://script.google.com/macros/s/AKfycbyzm0wHVjAvCoM78CVWYOe3pEQYP5BYf93RcQKNfcDkMSPUfi6c_rQqRE84wmTsUzDQ/exec';
     
     try {
         console.log('1. Inizio caricamento esercizi...');
@@ -1225,26 +1240,42 @@ async function caricaEsercizi() {
                 '<option value="">Tutti gli esercizi</option>' : 
                 '<option value="">Esercizio</option>';
 
-            // Itera attraverso le categorie
-            Object.entries(response).forEach(([categoria, esercizi]) => {
-                const optgroup = document.createElement('optgroup');
-                optgroup.label = categoria;
+            if (!response) return;
 
-                esercizi.forEach(exercise => {
+            // Il log mostra che i dati sono in response.data o direttamente in response
+            const dataToProcess = response.data || response;
+
+            if (Array.isArray(dataToProcess)) {
+                // Caso: Array piatto di esercizi
+                dataToProcess.forEach(exercise => {
                     const option = document.createElement('option');
-                    // Converti l'esercizio in kebab-case per il value
-                    option.value = exercise
-                        .toLowerCase()
-                        .replace(/\s+/g, '-')
-                        .replace(/[^a-z0-9-]/g, '');
-                    option.textContent = exercise; // Mantieni il testo originale
-                    optgroup.appendChild(option);
+                    option.value = normalizeExerciseValue(exercise);
+                    option.textContent = formatExerciseDisplay(exercise);
+                    selectElement.appendChild(option);
                 });
+                console.log(`8. Select ${selectElement.id} popolato con array piatto`);
+            } else if (typeof dataToProcess === 'object') {
+                // Caso: Oggetto categorizzato { "Gambe": ["squat", ...], "Petto": [...] }
+                Object.entries(dataToProcess).forEach(([categoria, esercizi]) => {
+                    // Salta proprietà di stato se presenti
+                    if (categoria === 'status' || categoria === 'message' || !Array.isArray(esercizi)) return;
 
-                selectElement.appendChild(optgroup);
-            });
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = categoria.charAt(0).toUpperCase() + categoria.slice(1);
 
-            console.log(`8. Select ${selectElement.id} popolato con le categorie`);
+                    esercizi.forEach(exercise => {
+                        const option = document.createElement('option');
+                        option.value = normalizeExerciseValue(exercise);
+                        option.textContent = formatExerciseDisplay(exercise);
+                        optgroup.appendChild(option);
+                    });
+
+                    selectElement.appendChild(optgroup);
+                });
+                console.log(`8. Select ${selectElement.id} popolato con categorie`);
+            }
+
+            console.log(`9. Select ${selectElement.id} completato`);
         }
 
         // Popola entrambi i select
@@ -1557,7 +1588,7 @@ function populateLastWorkoutData(exercise) {
         tr.innerHTML = `
             <td data-label="Data">${dataFormattata}</td>
             <td data-label="Settimana">${row.settimana}</td>
-            <td data-label="Esercizio">${row.esercizio}</td>
+            <td data-label="Esercizio">${formatExerciseDisplay(row.esercizio)}</td>
             <td data-label="Peso">${row.peso}</td>
             <td data-label="Serie">${row.serie}</td>
             <td data-label="Ripetizioni">${row.ripetizioni}</td>
@@ -1594,7 +1625,7 @@ function populateLastWorkoutData(exercise) {
         
         document.getElementById('data').value = formatDateForInput(cells[0].textContent);
         document.getElementById('settimana').value = cells[1].textContent;
-        document.getElementById('esercizio').value = cells[2].textContent;
+        document.getElementById('esercizio').value = normalizeExerciseValue(cells[2].textContent);
         document.getElementById('peso').value = cells[3].textContent;
         document.getElementById('serie').value = cells[4].textContent;
         document.getElementById('ripetizioni').value = cells[5].textContent;
@@ -2153,7 +2184,7 @@ function populateExerciseSelect() {
     exercises.forEach(exercise => {
         const option = document.createElement('option');
         option.value = exercise;
-        option.textContent = exercise;
+        option.textContent = formatExerciseDisplay(exercise);
         select.appendChild(option);
     });
     
